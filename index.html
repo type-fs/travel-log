@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Travel log</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,sans-serif;background:#f2f1ec;min-height:100vh;color:#1a1a18}
+  .app{max-width:480px;margin:0 auto;padding:0 0 100px}
+  .header{padding:24px 16px 12px;display:flex;align-items:center;justify-content:space-between}
+  .header h1{font-size:20px;font-weight:500}
+  .header span{font-size:13px;color:#6b6b67}
+  .toolbar{display:flex;align-items:center;gap:8px;padding:0 12px 12px}
+  .export-btn{background:none;border:0.5px solid #c4c3bb;border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;color:#6b6b67;font-family:inherit}
+  .export-btn:active{background:#e8e7e0}
+  .count-pill{font-size:12px;color:#6b6b67;margin-left:auto}
+  .entries{padding:0 12px;display:flex;flex-direction:column;gap:8px}
+  .day-sep{padding:16px 4px 6px;font-size:12px;font-weight:500;color:#6b6b67;letter-spacing:0.04em}
+  .entry-card{background:#fff;border:0.5px solid #e0dfd8;border-radius:12px;padding:12px 14px}
+  .entry-card .row1{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px}
+  .entry-card .activity{font-size:15px;font-weight:500}
+  .entry-card .time{font-size:12px;color:#6b6b67}
+  .entry-card .desc{font-size:13px;color:#6b6b67;line-height:1.5}
+  .empty{text-align:center;padding:60px 24px;color:#6b6b67;font-size:14px;line-height:1.8}
+  .fab{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    background:#1a1a18;color:#fff;border:none;border-radius:32px;
+    padding:18px 40px;font-size:17px;font-weight:500;cursor:pointer;
+    font-family:inherit;white-space:nowrap;z-index:10;
+    min-width:200px;text-align:center;
+  }
+  .fab:active{transform:translateX(-50%) scale(0.97)}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+  .modal{background:#fff;border-radius:20px 20px 0 0;padding:24px 20px 40px;width:100%;max-width:480px}
+  .modal h2{font-size:17px;font-weight:500;margin-bottom:20px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12px;color:#6b6b67;margin-bottom:5px}
+  .field input,.field textarea{
+    width:100%;border:0.5px solid #c4c3bb;border-radius:8px;
+    padding:11px 12px;font-size:15px;font-family:inherit;
+    color:#1a1a18;background:#fff;outline:none;
+    -webkit-appearance:none;appearance:none;
+  }
+  .field input:focus,.field textarea:focus{border-color:#888}
+  .field textarea{resize:none;height:88px;line-height:1.5}
+  .datetime-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .modal-actions{display:flex;gap:10px;margin-top:22px}
+  .btn-primary{
+    flex:1;background:#1a1a18;color:#fff;border:none;
+    border-radius:10px;padding:15px;font-size:16px;font-weight:500;
+    cursor:pointer;font-family:inherit;
+  }
+  .btn-primary:active{background:#333}
+  .btn-secondary{
+    flex:1;background:none;border:none;
+    border-radius:10px;padding:15px;font-size:16px;
+    cursor:pointer;color:#6b6b67;font-family:inherit;
+  }
+  .btn-secondary:active{background:#f2f1ec}
+  .toast{
+    position:fixed;top:20px;left:50%;transform:translateX(-50%);
+    background:#1a1a18;color:#fff;padding:10px 20px;border-radius:20px;
+    font-size:13px;z-index:30;opacity:0;transition:opacity 0.2s;
+    pointer-events:none;white-space:nowrap;font-family:inherit;
+  }
+  .toast.show{opacity:1}
+  @media (prefers-color-scheme: dark){
+    body{background:#1a1a18;color:#f0efe8}
+    .entry-card{background:#2c2c2a;border-color:#3a3a38}
+    .export-btn{border-color:#3a3a38;color:#888}
+    .export-btn:active{background:#333}
+    .modal{background:#2c2c2a}
+    .field input,.field textarea{background:#2c2c2a;border-color:#3a3a38;color:#f0efe8}
+    .field input:focus,.field textarea:focus{border-color:#888}
+    .fab{background:#f0efe8;color:#1a1a18}
+    .btn-primary{background:#f0efe8;color:#1a1a18}
+    .btn-primary:active{background:#ccc}
+    .toast{background:#f0efe8;color:#1a1a18}
+    .day-sep,.header span,.count-pill,.entry-card .time,.entry-card .desc,.empty,.btn-secondary,.field label{color:#888}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Travel log</h1>
+    <span id="trip-date"></span>
+  </div>
+  <div class="toolbar">
+    <button class="export-btn" onclick="exportLog()">Export .jsonl</button>
+    <span class="count-pill" id="count-pill"></span>
+  </div>
+  <div class="entries" id="entries-list"></div>
+</div>
+
+<button class="fab" onclick="openModal()">+ New entry</button>
+
+<div class="overlay" id="overlay" style="display:none" onclick="handleOverlayClick(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h2>New entry</h2>
+    <div class="field">
+      <label>Activity</label>
+      <input type="text" id="f-activity" placeholder="e.g. Hiking, Museum, Lunch" autocomplete="off" autocorrect="off">
+    </div>
+    <div class="field">
+      <label>Description (optional)</label>
+      <textarea id="f-desc" placeholder="Notes, details, thoughts..."></textarea>
+    </div>
+    <div class="datetime-row">
+      <div class="field">
+        <label>Date</label>
+        <input type="date" id="f-date">
+      </div>
+      <div class="field">
+        <label>Time</label>
+        <input type="time" id="f-time">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveEntry()">Save entry</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const STORAGE_KEY = 'travel_log_entries';
+const LAST_BACKUP_KEY = 'travel_log_last_backup';
+
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch { return []; }
+}
+function save(entries) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+}
+function pad(n) { return String(n).padStart(2,'0'); }
+function nowDate() {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function nowTime() {
+  const d = new Date();
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function formatDate(ds) {
+  const [y,m,d] = ds.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${parseInt(d)} ${months[parseInt(m)-1]} ${y}`;
+}
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function openModal() {
+  document.getElementById('f-activity').value = '';
+  document.getElementById('f-desc').value = '';
+  document.getElementById('f-date').value = nowDate();
+  document.getElementById('f-time').value = nowTime();
+  document.getElementById('overlay').style.display = 'flex';
+  setTimeout(() => document.getElementById('f-activity').focus(), 150);
+}
+function closeModal() {
+  document.getElementById('overlay').style.display = 'none';
+}
+function handleOverlayClick(e) {
+  if (e.target === document.getElementById('overlay')) closeModal();
+}
+
+function saveEntry() {
+  const activity = document.getElementById('f-activity').value.trim();
+  if (!activity) { document.getElementById('f-activity').focus(); return; }
+  const entry = {
+    id: Date.now(),
+    date: document.getElementById('f-date').value,
+    time: document.getElementById('f-time').value,
+    activity,
+    description: document.getElementById('f-desc').value.trim()
+  };
+  const entries = load();
+  entries.push(entry);
+  save(entries);
+  closeModal();
+  render();
+  showToast('Entry saved');
+}
+
+function exportLog() {
+  const entries = load();
+  if (!entries.length) { showToast('No entries yet'); return; }
+  const lines = entries.map(e => JSON.stringify(e)).join('\n');
+  const blob = new Blob([lines], {type:'application/jsonl'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'travel-log.jsonl';
+  a.click();
+  URL.revokeObjectURL(url);
+  localStorage.setItem(LAST_BACKUP_KEY, nowDate());
+  showToast('Exported travel-log.jsonl');
+}
+
+function checkDailyBackup() {
+  const last = localStorage.getItem(LAST_BACKUP_KEY);
+  if (last !== nowDate() && load().length > 0) {
+    setTimeout(exportLog, 800);
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function render() {
+  const entries = load();
+  const pill = document.getElementById('count-pill');
+  pill.textContent = entries.length ? `${entries.length} entr${entries.length===1?'y':'ies'}` : '';
+  document.getElementById('trip-date').textContent = formatDate(nowDate());
+
+  const list = document.getElementById('entries-list');
+  if (!entries.length) {
+    list.innerHTML = '<div class="empty">No entries yet.<br>Tap <strong>+ New entry</strong> to start logging.</div>';
+    return;
+  }
+
+  const sorted = [...entries].sort((a,b) => (b.date+b.time).localeCompare(a.date+a.time));
+  let html = '';
+  let lastDate = null;
+  for (const e of sorted) {
+    if (e.date !== lastDate) {
+      html += `<div class="day-sep">${formatDate(e.date)}</div>`;
+      lastDate = e.date;
+    }
+    html += `<div class="entry-card">
+      <div class="row1">
+        <span class="activity">${esc(e.activity)}</span>
+        <span class="time">${e.time}</span>
+      </div>
+      ${e.description ? `<div class="desc">${esc(e.description)}</div>` : ''}
+    </div>`;
+  }
+  list.innerHTML = html;
+}
+
+render();
+checkDailyBackup();
+</script>
+</body>
+</html>
