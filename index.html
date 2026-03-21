@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#f2f1ec" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1a1a18" media="(prefers-color-scheme: dark)">
+<link rel="manifest" href="manifest.json">
 <title>Travel log</title>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
@@ -59,7 +62,7 @@
     border-radius:10px;padding:15px;font-size:16px;
     cursor:pointer;color:#6b6b67;font-family:inherit;
   }
-  .btn-secondary:active{background:#f2f1ec}
+  .btn-secondary:active{background:#e8e7e0}
   .toast{
     position:fixed;top:20px;left:50%;transform:translateX(-50%);
     background:#1a1a18;color:#fff;padding:10px 20px;border-radius:20px;
@@ -78,6 +81,7 @@
     .fab{background:#f0efe8;color:#1a1a18}
     .btn-primary{background:#f0efe8;color:#1a1a18}
     .btn-primary:active{background:#ccc}
+    .btn-secondary:active{background:#333}
     .toast{background:#f0efe8;color:#1a1a18}
     .day-sep,.header span,.count-pill,.entry-card .time,.entry-card .desc,.empty,.btn-secondary,.field label{color:#888}
   }
@@ -247,6 +251,10 @@ function render() {
     </div>`;
   }
   list.innerHTML = html;
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
 }
 
 render();
