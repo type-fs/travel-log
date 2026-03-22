@@ -151,6 +151,13 @@ function nowTime() {
   const d = new Date();
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
+function isoWithOffset(dateStr, timeStr) {
+  const off = -(new Date().getTimezoneOffset());
+  const sign = off >= 0 ? '+' : '-';
+  const abs = Math.abs(off);
+  const offStr = `${sign}${pad(Math.floor(abs/60))}:${pad(abs%60)}`;
+  return `${dateStr}T${timeStr}:00${offStr}`;
+}
 function formatDate(ds) {
   const [y,m,d] = ds.split('-');
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -180,8 +187,7 @@ function saveEntry() {
   if (!activity) { document.getElementById('f-activity').focus(); return; }
   const entry = {
     id: Date.now(),
-    date: document.getElementById('f-date').value,
-    time: document.getElementById('f-time').value,
+    timestamp: isoWithOffset(document.getElementById('f-date').value, document.getElementById('f-time').value),
     activity,
     description: document.getElementById('f-desc').value.trim()
   };
@@ -201,7 +207,8 @@ function exportLog() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'travel-log.jsonl';
+  const ts = nowDate() + '-' + nowTime().replace(':','');
+  a.download = `travel-log-${ts}.jsonl`;
   a.click();
   URL.revokeObjectURL(url);
   localStorage.setItem(LAST_BACKUP_KEY, nowDate());
@@ -234,18 +241,20 @@ function render() {
     return;
   }
 
-  const sorted = [...entries].sort((a,b) => (b.date+b.time).localeCompare(a.date+a.time));
+  const sorted = [...entries].sort((a,b) => a.timestamp.localeCompare(b.timestamp) * -1);
   let html = '';
   let lastDate = null;
   for (const e of sorted) {
-    if (e.date !== lastDate) {
-      html += `<div class="day-sep">${formatDate(e.date)}</div>`;
-      lastDate = e.date;
+    const localDate = e.timestamp.substring(0, 10);
+    const localTime = e.timestamp.substring(11, 16);
+    if (localDate !== lastDate) {
+      html += `<div class="day-sep">${formatDate(localDate)}</div>`;
+      lastDate = localDate;
     }
     html += `<div class="entry-card">
       <div class="row1">
         <span class="activity">${esc(e.activity)}</span>
-        <span class="time">${e.time}</span>
+        <span class="time">${localTime}</span>
       </div>
       ${e.description ? `<div class="desc">${esc(e.description)}</div>` : ''}
     </div>`;
