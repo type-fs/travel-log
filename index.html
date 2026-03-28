@@ -207,8 +207,9 @@ function exportLog() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  const ts = nowDate() + '-' + nowTime().replace(':','');
-  a.download = `travel-log-${ts}.jsonl`;
+  const d = new Date();
+  const ts = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  a.download = `travel-log_${ts}.jsonl`;
   a.click();
   URL.revokeObjectURL(url);
   localStorage.setItem(LAST_BACKUP_KEY, nowDate());
