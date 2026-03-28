@@ -208,7 +208,7 @@ function exportLog() {
   const a = document.createElement('a');
   a.href = url;
   const d = new Date();
-  const ts = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  const ts = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
   a.download = `travel-log_${ts}.jsonl`;
   a.click();
   URL.revokeObjectURL(url);
